@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import apiClient from '@/lib/api';
+import { toast } from 'react-toastify';
 import UserControls from '@/components/UserControls';
 
 export default function DiscoverPage() {
@@ -80,7 +81,7 @@ export default function DiscoverPage() {
       const currentVersion = data.currentVersion;
 
       if (!currentVersion?.music_data?.tracks?.length) {
-        alert('No music in this project yet');
+        toast.warn('No music in this project yet');
         return;
       }
 
@@ -208,7 +209,7 @@ export default function DiscoverPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-black text-white">
       {/* Header */}
-      <div className="bg-black/30 backdrop-blur-lg border-b border-white/10 sticky top-0 z-50">
+      <div className="bg-black/95 backdrop-blur-xl border-b border-white/10 sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-6 py-4">
           <div className="flex justify-between items-center">
             <div>
@@ -220,7 +221,7 @@ export default function DiscoverPage() {
             <div className="flex items-center gap-4">
               <button
                 onClick={() => router.push('/')}
-                className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition hidden md:block"
+                className="text-gray-400 hover:text-white transition-colors text-sm flex items-center gap-1 hover:underline"
               >
                 ← Back
               </button>
@@ -231,28 +232,28 @@ export default function DiscoverPage() {
       </div>
 
       {/* Search */}
-      <div className="max-w-6xl mx-auto px-6 py-6">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
         <input
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search by project name, creator, or description..."
-          className="w-full px-6 py-4 bg-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+          placeholder="Search projects..."
+          className="w-full px-4 sm:px-6 py-3 sm:py-4 bg-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 text-sm sm:text-base"
         />
       </div>
 
       {/* Projects Grid */}
-      <div className="max-w-6xl mx-auto px-6 pb-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 pb-8">
         {filteredProjects.length === 0 ? (
-          <div className="text-center py-20 text-gray-400">
-            <div className="text-6xl mb-4">🎵</div>
-            <p className="text-xl">No projects found</p>
+          <div className="text-center py-10 sm:py-20 text-gray-400">
+            <div className="text-5xl sm:text-6xl mb-4">🎵</div>
+            <p className="text-lg sm:text-xl">No projects found</p>
             {publicProjects.length === 0 && (
               <p className="text-sm mt-2">Be the first to create a music project!</p>
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {filteredProjects.map(project => {
               const isPlaying = playingProject === project.id;
               const isOwnProject = project.owner_id === user?.id;
@@ -265,45 +266,42 @@ export default function DiscoverPage() {
                   }`}
                 >
                   {/* Project Header */}
-                  <div className="p-5">
-                    <div className="flex items-start gap-4">
+                  <div className="p-4 sm:p-5">
+                    <div className="flex items-start gap-3 sm:gap-4">
                       {/* Creator Avatar */}
-                      <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${getUserColor(project.owner_username)} flex items-center justify-center text-lg font-bold flex-shrink-0`}>
+                      <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br ${getUserColor(project.owner_username)} flex items-center justify-center text-base sm:text-lg font-bold flex-shrink-0`}>
                         {getInitials(project.owner_username)}
                       </div>
                       
                       <div className="flex-1 min-w-0">
-                        <h3 className="text-lg font-bold truncate flex items-center gap-2">
+                        <h3 className="text-base sm:text-lg font-bold truncate flex items-center gap-2">
                           {project.name}
                           {isOwnProject && (
-                            <span className="text-xs px-2 py-0.5 bg-cyan-500/20 text-cyan-300 rounded-full">
+                            <span className="text-[10px] px-1.5 py-0.5 bg-cyan-500/20 text-cyan-300 rounded-full whitespace-nowrap">
                               Yours
                             </span>
                           )}
                         </h3>
-                        <p className="text-sm text-gray-400">
+                        <p className="text-xs sm:text-sm text-gray-400">
                           by <span className="text-purple-400">{project.owner_username}</span>
                         </p>
-                        {project.description && (
-                          <p className="text-sm text-gray-500 mt-1 truncate">{project.description}</p>
-                        )}
                       </div>
                     </div>
 
                     {/* Stats */}
-                    <div className="flex items-center gap-4 mt-4 text-xs text-gray-500">
-                      <span>📜 {project.version_count || 0} versions</span>
-                      <span>👥 {project.collaborator_count || 1} contributors</span>
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-3 sm:mt-4 text-[10px] sm:text-xs text-gray-500">
+                      <span>📜 {project.version_count || 0} v</span>
+                      <span>👥 {project.collaborator_count || 1} collabs</span>
                       <span>📅 {formatDate(project.updated_at)}</span>
                     </div>
                   </div>
 
                   {/* Actions */}
-                  <div className="px-5 pb-5 flex gap-2">
+                  <div className="px-4 sm:px-5 pb-4 sm:pb-5 flex gap-2">
                     {/* Play Button */}
                     <button
                       onClick={() => handlePlayProject(project)}
-                      className={`flex-1 py-3 rounded-lg font-semibold transition flex items-center justify-center gap-2 ${
+                      className={`flex-1 py-2 sm:py-3 rounded-lg font-semibold transition flex items-center justify-center gap-2 text-sm sm:text-base ${
                         isPlaying
                           ? 'bg-red-600 hover:bg-red-700'
                           : 'bg-green-600 hover:bg-green-700'
@@ -319,7 +317,7 @@ export default function DiscoverPage() {
                     {/* Open/Edit Button */}
                     <button
                       onClick={() => router.push(`/compose/${project.id}`)}
-                      className="flex-1 py-3 bg-gradient-to-r from-cyan-500 to-purple-500 rounded-lg font-semibold hover:scale-105 transition-transform flex items-center justify-center gap-2"
+                      className="flex-1 py-2 sm:py-3 bg-gradient-to-r from-cyan-500 to-purple-500 rounded-lg font-semibold hover:scale-105 transition-transform flex items-center justify-center gap-2 text-sm sm:text-base"
                     >
                       {isOwnProject ? '✏️ Edit' : '🎨 Remix'}
                     </button>

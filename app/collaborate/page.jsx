@@ -145,9 +145,10 @@ export default function CollaboratePage() {
           </h1>
           <button
             onClick={() => router.push('/')}
-            className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition"
+            className="text-gray-400 hover:text-white transition-colors flex items-center gap-2"
           >
-            ← Back to Projects
+            <span>←</span>
+            <span>Back to Projects</span>
           </button>
         </div>
 

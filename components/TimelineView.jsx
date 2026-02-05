@@ -36,8 +36,9 @@ export default function TimelineView({ tracks, timeline }) {
     
     const updateWidth = () => {
       const width = containerRef.current?.offsetWidth || 800;
-      // Subtract track label width (128px) and some padding
-      setContainerWidth(width - 160);
+      // Dynamic track label width offset
+      const labelWidth = window.innerWidth < 640 ? 80 : 160;
+      setContainerWidth(width - labelWidth);
     };
     
     updateWidth();
@@ -118,13 +119,13 @@ export default function TimelineView({ tracks, timeline }) {
         <div className="flex items-center justify-center h-full">
           <div className="text-center text-gray-400">
             <p className="text-xl mb-2">No tracks yet</p>
-            <p className="text-sm">Press Record to create your first track</p>
+            <p className="text-sm">Record to create your first track</p>
           </div>
         </div>
       ) : (
-        <div>
+        <div className="overflow-x-auto pb-4">
           {/* Time Ruler */}
-          <div className="mb-4 ml-32">
+          <div className="mb-4 ml-20 sm:ml-32">
             <div 
               className="relative h-8 bg-black/30 rounded border border-white/10 cursor-pointer hover:bg-black/40 transition-colors"
               onClick={handleTimelineClick}
@@ -149,11 +150,11 @@ export default function TimelineView({ tracks, timeline }) {
             {tracks.map((track, index) => (
               <div key={track.id} className="flex items-center gap-2">
                 {/* Track Label */}
-                <div className="w-32 flex-shrink-0">
-                  <div className="bg-white/5 rounded-lg p-2 border-l-4" style={{ borderColor: track.color }}>
-                    <div className="font-semibold text-sm">Track {index + 1}</div>
-                    <div className="text-xs text-gray-400">({track.instrumentType})</div>
-                    <div className="text-xs text-gray-500">{track.events.length} events</div>
+                <div className="w-20 sm:w-32 flex-shrink-0">
+                  <div className="bg-white/5 rounded-lg p-1 sm:p-2 border-l-4" style={{ borderColor: track.color }}>
+                    <div className="font-semibold text-[10px] sm:text-sm truncate">Track {index + 1}</div>
+                    <div className="text-[8px] sm:text-xs text-gray-400 truncate">({track.instrumentType})</div>
+                    <div className="text-[8px] sm:text-xs text-gray-500">{track.events.length} evt</div>
                   </div>
                 </div>
 
@@ -194,8 +195,8 @@ export default function TimelineView({ tracks, timeline }) {
           </div>
 
           {/* Duration Info */}
-          <div className="mt-4 ml-32 text-xs text-gray-500">
-            Total duration: {duration.toFixed(1)}s (music + 5s buffer)
+          <div className="mt-4 ml-20 sm:ml-32 text-[10px] sm:text-xs text-gray-500">
+            Total: {duration.toFixed(1)}s
           </div>
         </div>
       )}

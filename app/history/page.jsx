@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import apiClient from '@/lib/api';
+import { toast } from 'react-toastify';
 import UserControls from '@/components/UserControls';
 
 export default function HistoryPage() {
@@ -167,7 +168,7 @@ export default function HistoryPage() {
 
     } catch (error) {
       console.error('Failed to play version:', error);
-      alert('Failed to play: ' + error.message);
+      toast.error('Failed to play: ' + error.message);
       setLoadingPreview(null);
     }
   };
@@ -332,21 +333,21 @@ export default function HistoryPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-black text-white">
       {/* Header */}
-      <div className="bg-black/90 backdrop-blur-xl border-b border-white/10 sticky top-0 z-50 shadow-2xl">
+      <div className="bg-black border-b border-white/10 sticky top-0 z-50 shadow-2xl">
         <div className="max-w-6xl mx-auto px-6 py-4">
           <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
+            <div className="flex-1 min-w-0">
+              <h1 className="text-xl sm:text-3xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent truncate">
                 📜 {project.name}
               </h1>
-              <p className="text-gray-400 text-sm mt-1">Version History</p>
+              <p className="text-gray-400 text-[10px] sm:text-sm mt-0.5 sm:mt-1">Version History</p>
             </div>
             <div className="flex items-center gap-3">
               <button 
                 onClick={() => router.push(`/compose/${projectId}`)}
-                className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-purple-500 rounded-full font-semibold hover:scale-105 transition-transform flex items-center gap-2"
+                className="px-3 sm:px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-black rounded-full font-bold hover:scale-105 transition-transform flex items-center gap-2 shadow-[0_0_15px_rgba(34,211,238,0.3)] text-xs sm:text-sm"
               >
-                <span>🎵</span> Back to Composer
+                <span>🎵</span> <span className="hidden sm:inline">Back to Composer</span>
               </button>
               <UserControls />
             </div>
@@ -355,19 +356,19 @@ export default function HistoryPage() {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-6xl mx-auto px-6 py-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
         {/* Pending Proposals */}
         {pendingProposals.length > 0 && (
-          <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-6 mb-8 animate-fade-in">
+          <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4 sm:p-6 mb-6 sm:mb-8 animate-fade-in">
             <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
               <span className="w-3 h-3 bg-yellow-500 rounded-full animate-pulse"></span>
               {pendingProposals.length} Pending Proposal{pendingProposals.length > 1 ? 's' : ''}
             </h2>
             <div className="space-y-3">
               {pendingProposals.map(proposal => (
-                <div key={proposal.id} className="bg-white/5 rounded-lg p-4 flex justify-between items-center">
+                <div key={proposal.id} className="bg-white/5 rounded-lg p-3 sm:p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <div>
-                    <h3 className="font-semibold text-lg">{proposal.title}</h3>
+                    <h3 className="font-semibold text-base sm:text-lg">{proposal.title}</h3>
                     <p className="text-sm text-gray-400">{proposal.description || 'No description'}</p>
                     <p className="text-xs text-gray-500 mt-2">
                       Proposed by <span className="text-cyan-400">{proposal.proposer_username}</span> • {new Date(proposal.created_at).toLocaleString()}
@@ -418,17 +419,17 @@ export default function HistoryPage() {
               return (
                 <div 
                   key={version.id} 
-                  className={`relative pl-20 transition-all duration-300 ${
-                    isPlaying ? 'scale-[1.02]' : 'hover:pl-24'
+                  className={`relative pl-12 sm:pl-20 transition-all duration-300 ${
+                    isPlaying ? 'scale-[1.01] sm:scale-[1.02]' : 'hover:pl-14 sm:hover:pl-24'
                   }`}
                 >
                   {/* Timeline Dot */}
-                  <div className={`absolute left-[29px] top-6 w-4 h-4 rounded-full border-2 transform -translate-x-1/2 transition-colors ${
+                  <div className={`absolute left-[15px] sm:left-[29px] top-6 w-3 h-3 sm:w-4 sm:h-4 rounded-full border-2 transform -translate-x-1/2 transition-colors ${
                     index === 0 ? 'bg-cyan-500 border-cyan-300 shadow-[0_0_10px_rgba(34,211,238,0.5)]' : 'bg-black border-gray-500'
                   }`}></div>
                   
                   {/* Version Card */}
-                  <div className={`bg-white/5 backdrop-blur-md rounded-xl p-5 border transition-all ${
+                  <div className={`bg-white/5 backdrop-blur-md rounded-xl p-3 sm:p-5 border transition-all ${
                     isPlaying 
                       ? 'border-green-500/50 bg-green-900/10 shadow-[0_0_20px_rgba(34,197,94,0.1)]' 
                       : index === 0 
@@ -437,13 +438,13 @@ export default function HistoryPage() {
                   }`}>
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <span className={`text-sm font-mono px-2 py-0.5 rounded ${
+                        <div className="flex flex-wrap items-center gap-2 mb-2">
+                          <span className={`text-[10px] sm:text-sm font-mono px-2 py-0.5 rounded ${
                             index === 0 ? 'bg-cyan-500 text-black font-bold' : 'bg-white/10 text-gray-400'
                           }`}>
                             v{versions.length - index}
                           </span>
-                          <span className="text-xs text-gray-500">
+                          <span className="text-[10px] sm:text-xs text-gray-500">
                             {new Date(version.created_at).toLocaleString()}
                           </span>
                           {index === 0 && (

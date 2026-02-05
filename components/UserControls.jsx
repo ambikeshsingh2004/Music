@@ -46,7 +46,8 @@ export default function UserControls() {
         className="text-gray-400 hover:text-white transition-colors text-sm hover:underline"
         title="Dashboard"
       >
-        Dashboard
+        <span className="sm:hidden text-xl">🏠</span>
+        <span className="hidden sm:inline">Dashboard</span>
       </button>
 
       <div className="h-4 w-px bg-white/10"></div>

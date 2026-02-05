@@ -4,6 +4,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import apiClient from '@/lib/api';
 import useProjectStore from '@/store/projectStore';
+import { toast } from 'react-toastify';
 import UserControls from '@/components/UserControls';
 
 export default function TabNavigation({ projectId, projectName }) {
@@ -49,7 +50,7 @@ export default function TabNavigation({ projectId, projectName }) {
       setIsEditing(false);
     } catch (error) {
       console.error('Failed to rename project:', error);
-      alert('Failed to rename project');
+      toast.error('Failed to rename project');
       // Revert on error
       updateProjectName(projectName);
       setEditedName(projectName || 'Project');
@@ -69,16 +70,18 @@ export default function TabNavigation({ projectId, projectName }) {
   };
 
   return (
-    <div className="glass-strong border-b border-white/10">
+    <div className="bg-black border-b border-white/10 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex items-center justify-between">
           {/* Project Name & Back Button */}
           <div className="flex items-center gap-4 py-3">
             <button
               onClick={() => router.push('/')}
-              className="text-gray-400 hover:text-white transition-colors px-3 py-1 rounded-lg hover:bg-white/5"
+              className="text-white bg-white/10 hover:bg-white/20 transition-colors px-3 sm:px-4 py-2 rounded-lg"
+              title="Back"
             >
-              ← Back
+              <span className="sm:hidden">🏠</span>
+              <span className="hidden sm:inline">← Back</span>
             </button>
             <div className="h-6 w-px bg-white/20"></div>
             
@@ -106,7 +109,7 @@ export default function TabNavigation({ projectId, projectName }) {
                 className="group flex items-center gap-2 px-3 py-1 rounded-lg hover:bg-white/5 transition-all"
                 title="Click to rename"
               >
-                <h2 className="text-lg font-semibold gradient-text">
+                <h2 className="text-base sm:text-lg font-semibold gradient-text truncate max-w-[120px] sm:max-w-none">
                   {currentProject?.name || projectName || 'Project'}
                 </h2>
                 <span className="text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity text-sm">
@@ -123,15 +126,16 @@ export default function TabNavigation({ projectId, projectName }) {
               <button
                 key={tab.name}
                 onClick={() => router.push(tab.path)}
-                className={`px-6 py-4 font-medium transition-all relative ${
+                className={`flex-1 sm:flex-none px-4 sm:px-6 py-3 sm:py-4 font-medium transition-all relative ${
                   isActive(tab.path)
                     ? 'text-white'
                     : 'text-gray-400 hover:text-white'
                 }`}
+                title={tab.name}
               >
                 <span className="flex items-center gap-2">
-                  <span>{tab.icon}</span>
-                  <span>{tab.name}</span>
+                  <span className="text-xl sm:text-base">{tab.icon}</span>
+                  <span className="hidden sm:inline">{tab.name}</span>
                 </span>
                 {isActive(tab.path) && (
                   <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-cyan-500 to-purple-500"></div>

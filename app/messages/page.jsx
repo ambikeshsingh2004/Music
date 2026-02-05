@@ -230,7 +230,10 @@ export default function MessagesPage() {
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-black text-white">
       <div className="flex h-screen">
         {/* Sidebar - Conversations List */}
-        <div className="w-80 bg-black/30 backdrop-blur-lg border-r border-white/10 flex flex-col">
+        <div className={`
+          ${selectedConversation ? 'hidden md:flex' : 'flex'} 
+          w-full md:w-80 bg-black border-r border-white/10 flex-col h-full
+        `}>
           {/* Header */}
           <div className="p-4 border-b border-white/10">
             <div className="flex justify-between items-center mb-4">
@@ -240,9 +243,10 @@ export default function MessagesPage() {
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => router.push('/')}
-                  className="text-sm px-3 py-1 bg-white/10 hover:bg-white/20 rounded-lg transition"
+                  className="text-gray-400 hover:text-white transition-colors flex items-center gap-2"
                 >
-                  ← Back
+                  <span>🏠</span>
+                  <span className="hidden sm:inline text-sm">Home</span>
                 </button>
                 <UserControls />
               </div>
@@ -305,20 +309,29 @@ export default function MessagesPage() {
         </div>
 
         {/* Main Chat Area */}
-        <div className="flex-1 flex flex-col">
+        <div className={`
+          ${selectedConversation ? 'flex' : 'hidden md:flex'} 
+          flex-1 flex flex-col h-full
+        `}>
           {selectedConversation ? (
             <>
               {/* Chat Header */}
-              <div className="p-4 bg-black/20 border-b border-white/10 flex items-center gap-4">
-                <div className="w-10 h-10 bg-gradient-to-br from-cyan-500 to-purple-500 rounded-full flex items-center justify-center text-lg font-bold">
+              <div className="p-3 sm:p-4 bg-black/20 border-b border-white/10 flex items-center gap-3 sm:gap-4">
+                <button
+                  onClick={() => setSelectedConversation(null)}
+                  className="md:hidden p-2 hover:bg-white/10 rounded-lg transition"
+                >
+                  ←
+                </button>
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-cyan-500 to-purple-500 rounded-full flex items-center justify-center text-base sm:text-lg font-bold">
                   {getConversationAvatar(selectedConversation)}
                 </div>
-                <div>
-                  <h2 className="font-semibold text-lg">
+                <div className="min-w-0">
+                  <h2 className="font-semibold text-base sm:text-lg truncate">
                     {getConversationName(selectedConversation)}
                   </h2>
                   {selectedConversation.project_name && (
-                    <p className="text-sm text-gray-400">
+                    <p className="text-[10px] sm:text-sm text-gray-400 truncate">
                       Project: {selectedConversation.project_name}
                     </p>
                   )}
@@ -368,8 +381,8 @@ export default function MessagesPage() {
               </div>
 
               {/* Message Input */}
-              <form onSubmit={handleSendMessage} className="p-4 bg-black/20 border-t border-white/10">
-                <div className="flex gap-3">
+              <form onSubmit={handleSendMessage} className="p-3 sm:p-4 bg-black/20 border-t border-white/10">
+                <div className="flex gap-2 sm:gap-3">
                   <input
                     type="text"
                     value={newMessage}
@@ -377,13 +390,13 @@ export default function MessagesPage() {
                       setNewMessage(e.target.value);
                       handleTyping();
                     }}
-                    placeholder="Type a message..."
-                    className="flex-1 px-4 py-3 bg-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                    placeholder="Message..."
+                    className="flex-1 px-3 sm:px-4 py-2 sm:py-3 bg-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 text-sm sm:text-base"
                   />
                   <button
                     type="submit"
                     disabled={!newMessage.trim()}
-                    className="px-6 py-3 bg-gradient-to-r from-cyan-500 to-purple-500 rounded-xl font-semibold hover:scale-105 transition-transform disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                    className="px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-cyan-500 to-purple-500 rounded-xl font-semibold hover:scale-105 transition-transform disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
                   >
                     Send
                   </button>

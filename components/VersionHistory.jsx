@@ -29,7 +29,7 @@ export default function VersionHistory({ projectId }) {
       window.location.reload();
     } catch (error) {
       console.error('Failed to revert:', error);
-      alert('Failed to revert to version');
+      toast.error('Failed to revert to version');
     }
   };
 

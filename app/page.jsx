@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import apiClient from '@/lib/api';
 import UserControls from '@/components/UserControls';
+import { toast } from 'react-toastify';
 
 export default function LandingPage() {
   const router = useRouter();
@@ -52,7 +53,7 @@ export default function LandingPage() {
       }
     } catch (error) {
       console.error('Failed to create project:', error);
-      alert('Failed to create project. Please try again.');
+      toast.error('Failed to create project. Please try again.');
       setIsCreating(false);
     }
   };
@@ -98,6 +99,14 @@ export default function LandingPage() {
             <button
               onClick={handleStartCreating}
               disabled={isCreating}
+              className="md:hidden bg-gradient-to-r from-cyan-500 to-purple-500 p-2 rounded-lg font-medium transition-transform disabled:opacity-50"
+              title="New Project"
+            >
+              ➕
+            </button>
+            <button
+              onClick={handleStartCreating}
+              disabled={isCreating}
               className="hidden md:block bg-gradient-to-r from-cyan-500 to-purple-500 px-6 py-2 rounded-lg font-medium hover:scale-105 transition-transform disabled:opacity-50 disabled:scale-100"
             >
               {isCreating ? 'Creating...' : user ? 'New Project →' : 'Get Started →'}
@@ -119,30 +128,30 @@ export default function LandingPage() {
           </div>
 
           {/* Headline */}
-          <h1 className="text-6xl md:text-7xl font-bold leading-tight">
+          <h1 className="text-4xl sm:text-6xl md:text-7xl font-bold leading-tight px-4">
             Create Music
             <br />
             <span className="gradient-text">Together, Anywhere</span>
           </h1>
 
           {/* Subheadline */}
-          <p className="text-xl text-gray-400 max-w-2xl mx-auto">
+          <p className="text-lg md:text-xl text-gray-400 max-w-2xl mx-auto px-6">
             A revolutionary platform for musicians to compose, collaborate, and share music in real-time with Git-like version control.
           </p>
 
           {/* CTA Buttons */}
-          <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4 px-6">
             <button
               onClick={handleStartCreating}
               disabled={isCreating}
-              className="px-8 py-4 rounded-xl font-semibold text-lg btn-hover disabled:opacity-50"
+              className="w-full sm:w-auto px-8 py-4 rounded-xl font-semibold text-lg btn-hover disabled:opacity-50"
               style={{ background: 'var(--gradient-cyan)' }}
             >
               {isCreating ? 'Creating...' : 'Start Creating Now'}
             </button>
             <button
               onClick={() => router.push('/discover')}
-              className="glass px-8 py-4 rounded-xl font-semibold text-lg btn-hover"
+              className="w-full sm:w-auto glass px-8 py-4 rounded-xl font-semibold text-lg btn-hover"
             >
               Explore Projects
             </button>
@@ -224,7 +233,7 @@ export default function LandingPage() {
             <div className="text-5xl mb-4">🚀</div>
             <h3 className="text-2xl font-bold mb-3">Easy to Use</h3>
             <p className="text-gray-400">
-              Intuitive interface with keyboard shortcuts. Start creating music in seconds, no learning curve.
+              Intuitive interface for modern creators. Start creating music in seconds, no learning curve.
             </p>
           </div>
         </div>
