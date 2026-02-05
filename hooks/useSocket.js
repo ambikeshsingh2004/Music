@@ -12,7 +12,15 @@ export default function useSocket(projectId, user) {
     if (!projectId || !user) return;
 
     const socketHost = process.env.NEXT_PUBLIC_SOCKET_HOST;
-    const SOCKET_URL = socketHost ? `https://${socketHost}` : (process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:5000');
+    const SOCKET_URL = (() => {
+      if (socketHost) {
+        if (socketHost.includes('.')) {
+          return `https://${socketHost}`;
+        }
+        return `https://${socketHost}.onrender.com`;
+      }
+      return process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:5000';
+    })();
 
     // Create socket connection
     socketRef.current = io(SOCKET_URL);

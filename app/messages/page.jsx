@@ -64,7 +64,15 @@ export default function MessagesPage() {
 
   const initSocket = () => {
     const apiHost = process.env.NEXT_PUBLIC_API_HOST;
-    const socketUrl = apiHost ? `https://${apiHost}` : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000');
+    const socketUrl = (() => {
+      if (apiHost) {
+        if (apiHost.includes('.')) {
+          return `https://${apiHost}`;
+        }
+        return `https://${apiHost}.onrender.com`;
+      }
+      return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+    })();
     const newSocket = io(socketUrl);
 
     newSocket.on('connect', () => {
