@@ -14,6 +14,7 @@ services:
 
       - key: REDIS_URL
         fromService:
+          type: redis
           name: musically-redis
           property: connectionString
 
@@ -36,11 +37,13 @@ services:
     envVars:
       - key: NEXT_PUBLIC_API_URL
         fromService:
+          type: web
           name: musically-api
           property: url
 
       - key: NEXT_PUBLIC_SOCKET_URL
         fromService:
+          type: web
           name: musically-api
           property: url
 
@@ -48,6 +51,7 @@ services:
   - type: redis
     name: musically-redis
     plan: free
+    ipAllowList: []
 
 databases:
   # 4. Postgres
