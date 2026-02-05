@@ -154,8 +154,8 @@ router.put('/:id', authenticateToken, async (req, res) => {
       [name, description, id]
     );
 
-    // Invalidate cache
-    await invalidateProjectCache(id);
+    // Invalidate cache (Removed)
+    // await invalidateProjectCache(id);
 
     res.json({ project: result.rows[0] });
   } catch (error) {
