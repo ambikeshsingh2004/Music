@@ -8,8 +8,11 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000',
-    methods: ['GET', 'POST', 'PUT', 'DELETE']
+    origin: process.env.ALLOW_ALL_ORIGINS === 'true'
+      ? '*'
+      : (process.env.CLIENT_URL || 'http://localhost:3000'),
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    credentials: true
   }
 });
 
