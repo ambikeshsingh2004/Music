@@ -4,7 +4,6 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { io } from 'socket.io-client';
 import apiClient from '@/lib/api';
-import UserControls from '@/components/UserControls';
 
 export default function MessagesPage() {
   const [conversations, setConversations] = useState([]);
@@ -249,15 +248,24 @@ export default function MessagesPage() {
               <h1 className="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
                 Messages
               </h1>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
                 <button
                   onClick={() => router.push('/')}
-                  className="text-gray-400 hover:text-white transition-colors flex items-center gap-2"
+                  className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                  title="Back to Home"
                 >
-                  <span>🏠</span>
-                  <span className="hidden sm:inline text-sm">Home</span>
+                  <span className="text-xl">🏠</span>
                 </button>
-                <UserControls />
+                <button
+                  onClick={() => {
+                    apiClient.clearToken();
+                    router.replace('/auth');
+                  }}
+                  className="p-2 text-red-400 hover:text-red-300 hover:bg-red-900/20 rounded-lg transition-colors"
+                  title="Logout"
+                >
+                   <span className="text-xl">🚪</span>
+                </button>
               </div>
             </div>
             <button
