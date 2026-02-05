@@ -43,8 +43,8 @@ export default function Workspace({ projectId }) {
         savedAt: new Date().toISOString()
       };
 
-      // Create new version
-      await apiClient.createVersion(
+      // Create new version (or proposal if not owner)
+      const result = await apiClient.createVersion(
         projectId,
         musicData,
         metadata,
@@ -52,10 +52,15 @@ export default function Workspace({ projectId }) {
         null // No parent version for now
       );
 
-      alert('✅ Project saved successfully!');
+      // Show appropriate message based on result type
+      if (result.type === 'proposal') {
+        alert('📝 Your changes have been submitted as a proposal!\n\nThe project owner will review and approve your changes.');
+      } else {
+        alert('✅ Project saved successfully!');
+      }
     } catch (error) {
       console.error('Save error:', error);
-      alert('❌ Failed to save project: ' + error.message);
+      alert('❌ Failed to save: ' + error.message);
     } finally {
       setSaving(false);
     }

@@ -70,7 +70,7 @@ router.get('/projects/:projectId/versions/:versionId', authenticateToken, async 
   }
 });
 
-// Create new version (save)
+// Create new version (save) - owners save directly, others create proposals
 router.post('/projects/:projectId/versions', authenticateToken, async (req, res) => {
   try {
     const { projectId } = req.params;
@@ -80,15 +80,24 @@ router.post('/projects/:projectId/versions', authenticateToken, async (req, res)
       return res.status(400).json({ error: 'Music data is required' });
     }
 
-    // Check access
-    const hasAccess = await query(
-      'SELECT 1 FROM collaborators WHERE project_id = $1 AND user_id = $2',
-      [projectId, req.user.userId]
+    // Get project to check ownership
+    const projectResult = await query(
+      'SELECT owner_id FROM projects WHERE id = $1',
+      [projectId]
     );
 
-    if (hasAccess.rows.length === 0) {
-      return res.status(403).json({ error: 'Access denied' });
+    if (projectResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Project not found' });
     }
+
+    const isOwner = projectResult.rows[0].owner_id === req.user.userId;
+
+    // Check if user is a collaborator with editor access
+    const collaboratorResult = await query(
+      'SELECT role FROM collaborators WHERE project_id = $1 AND user_id = $2',
+      [projectId, req.user.userId]
+    );
+    const isEditor = collaboratorResult.rows[0]?.role === 'editor';
 
     // Get next version number
     const versionCountResult = await query(
@@ -98,7 +107,7 @@ router.post('/projects/:projectId/versions', authenticateToken, async (req, res)
     const versionNumber = versionCountResult.rows[0].next_version;
 
     // Create version
-    const result = await query(
+    const versionResult = await query(
       `INSERT INTO versions (project_id, parent_version_id, version_number, music_data, metadata, created_by, message) 
        VALUES ($1, $2, $3, $4, $5, $6, $7) 
        RETURNING *`,
@@ -113,18 +122,45 @@ router.post('/projects/:projectId/versions', authenticateToken, async (req, res)
       ]
     );
 
-    const version = result.rows[0];
+    const version = versionResult.rows[0];
 
-    // Update project's current_version_id
-    await query(
-      'UPDATE projects SET current_version_id = $1, updated_at = NOW() WHERE id = $2',
-      [version.id, projectId]
-    );
+    // If owner or editor, update HEAD directly
+    if (isOwner || isEditor) {
+      await query(
+        'UPDATE projects SET current_version_id = $1, updated_at = NOW() WHERE id = $2',
+        [version.id, projectId]
+      );
 
-    // Invalidate cache
-    await invalidateProjectCache(projectId);
+      // Invalidate cache
+      await invalidateProjectCache(projectId);
 
-    res.status(201).json({ version });
+      res.status(201).json({
+        version,
+        type: 'saved',
+        message: 'Version saved successfully!'
+      });
+    } else {
+      // Non-owner/non-editor: Create a proposal for owner approval
+      const proposalResult = await query(
+        `INSERT INTO proposals (project_id, version_id, proposed_by, title, description, status)
+         VALUES ($1, $2, $3, $4, $5, 'pending')
+         RETURNING *`,
+        [
+          projectId,
+          version.id,
+          req.user.userId,
+          message || `Proposed changes (v${versionNumber})`,
+          `Changes submitted for review. Created at ${new Date().toLocaleString()}`
+        ]
+      );
+
+      res.status(201).json({
+        version,
+        proposal: proposalResult.rows[0],
+        type: 'proposal',
+        message: 'Your changes have been submitted as a proposal for the owner to review!'
+      });
+    }
   } catch (error) {
     console.error('Create version error:', error);
     res.status(500).json({ error: 'Failed to create version' });

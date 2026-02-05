@@ -1,10 +1,18 @@
 // Socket.IO event handlers for real-time collaboration
 
 const activeUsers = new Map(); // projectId -> Set of user objects
+const userSocketMap = new Map(); // socketId -> { userId, username }
 
 module.exports = (io) => {
   io.on('connection', (socket) => {
     console.log('User connected:', socket.id);
+
+    // Register user for messaging
+    socket.on('register-user', ({ userId, username }) => {
+      userSocketMap.set(socket.id, { userId, username });
+      socket.join(`user:${userId}`); // Personal room for direct messages
+      console.log(`User ${username} registered for messaging`);
+    });
 
     // Join project room
     socket.on('join-project', ({ projectId, user }) => {
@@ -45,6 +53,32 @@ module.exports = (io) => {
       console.log(`User ${user.username} left project ${projectId}`);
     });
 
+    // Join conversation room
+    socket.on('join-conversation', ({ conversationId }) => {
+      socket.join(`conversation:${conversationId}`);
+      console.log(`Socket ${socket.id} joined conversation ${conversationId}`);
+    });
+
+    // Leave conversation room
+    socket.on('leave-conversation', ({ conversationId }) => {
+      socket.leave(`conversation:${conversationId}`);
+      console.log(`Socket ${socket.id} left conversation ${conversationId}`);
+    });
+
+    // New message in conversation
+    socket.on('send-message', ({ conversationId, message }) => {
+      socket.to(`conversation:${conversationId}`).emit('new-message', { message });
+    });
+
+    // Typing indicator
+    socket.on('typing-start', ({ conversationId, user }) => {
+      socket.to(`conversation:${conversationId}`).emit('user-typing', { user, isTyping: true });
+    });
+
+    socket.on('typing-stop', ({ conversationId, user }) => {
+      socket.to(`conversation:${conversationId}`).emit('user-typing', { user, isTyping: false });
+    });
+
     // New proposal notification
     socket.on('proposal-created', ({ projectId, proposal }) => {
       socket.to(projectId).emit('new-proposal', { proposal });
@@ -68,6 +102,9 @@ module.exports = (io) => {
     // Disconnect
     socket.on('disconnect', () => {
       console.log('User disconnected:', socket.id);
+
+      // Remove from user socket map
+      userSocketMap.delete(socket.id);
 
       // Remove from all project rooms
       activeUsers.forEach((users, projectId) => {

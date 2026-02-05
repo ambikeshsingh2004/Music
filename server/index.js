@@ -25,6 +25,7 @@ const proposalRoutes = require('./routes/proposals');
 const collaboratorRoutes = require('./routes/collaborators');
 const userRoutes = require('./routes/users');
 const collabRequestRoutes = require('./routes/collaboration-requests');
+const messageRoutes = require('./routes/messages');
 
 // Socket.IO handlers
 require('./sockets')(io);
@@ -37,6 +38,7 @@ app.use('/api/proposals', proposalRoutes);
 app.use('/api/collaborators', collaboratorRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/collaboration-requests', collabRequestRoutes);
+app.use('/api/messages', messageRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

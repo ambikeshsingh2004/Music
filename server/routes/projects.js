@@ -5,6 +5,25 @@ const { getProjectCache, setProjectCache, invalidateProjectCache } = require('..
 
 const router = express.Router();
 
+// Get all public projects (for discovery)
+router.get('/public', authenticateToken, async (req, res) => {
+  try {
+    const result = await query(
+      `SELECT p.*, u.username as owner_username,
+        (SELECT COUNT(*) FROM versions WHERE project_id = p.id) as version_count,
+        (SELECT COUNT(*) FROM collaborators WHERE project_id = p.id) as collaborator_count
+       FROM projects p 
+       JOIN users u ON p.owner_id = u.id 
+       ORDER BY p.updated_at DESC`
+    );
+
+    res.json({ projects: result.rows });
+  } catch (error) {
+    console.error('Get public projects error:', error);
+    res.status(500).json({ error: 'Failed to get public projects' });
+  }
+});
+
 // Get all projects for current user
 router.get('/', authenticateToken, async (req, res) => {
   try {
@@ -35,7 +54,22 @@ router.get('/:id', authenticateToken, async (req, res) => {
     // Check cache first
     const cached = await getProjectCache(id);
     if (cached) {
-      return res.json(cached);
+      // Add user-specific permission info
+      const isOwner = cached.project.owner_id === req.user.userId;
+      const collaboratorResult = await query(
+        'SELECT role FROM collaborators WHERE project_id = $1 AND user_id = $2',
+        [id, req.user.userId]
+      );
+      const isCollaborator = collaboratorResult.rows.length > 0;
+      const role = collaboratorResult.rows[0]?.role || null;
+
+      return res.json({
+        ...cached,
+        isOwner,
+        isCollaborator,
+        role,
+        canEdit: isOwner || role === 'editor'
+      });
     }
 
     // Get project
@@ -53,15 +87,14 @@ router.get('/:id', authenticateToken, async (req, res) => {
 
     const project = projectResult.rows[0];
 
-    // Check if user has access
-    const hasAccess = await query(
-      'SELECT 1 FROM collaborators WHERE project_id = $1 AND user_id = $2',
+    // Check if user is owner/collaborator
+    const isOwner = project.owner_id === req.user.userId;
+    const collaboratorResult = await query(
+      'SELECT role FROM collaborators WHERE project_id = $1 AND user_id = $2',
       [id, req.user.userId]
     );
-
-    if (project.owner_id !== req.user.userId && hasAccess.rows.length === 0) {
-      return res.status(403).json({ error: 'Access denied' });
-    }
+    const isCollaborator = collaboratorResult.rows.length > 0;
+    const role = collaboratorResult.rows[0]?.role || null;
 
     // Get current version if exists
     let currentVersion = null;
@@ -75,11 +108,15 @@ router.get('/:id', authenticateToken, async (req, res) => {
 
     const response = {
       project,
-      currentVersion
+      currentVersion,
+      isOwner,
+      isCollaborator,
+      role,
+      canEdit: isOwner || role === 'editor'
     };
 
-    // Cache the result
-    await setProjectCache(id, response);
+    // Cache the result (without user-specific data)
+    await setProjectCache(id, { project, currentVersion });
 
     res.json(response);
   } catch (error) {

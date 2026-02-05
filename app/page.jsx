@@ -79,7 +79,19 @@ export default function HomePage() {
             </h1>
             <p className="text-gray-400 mt-2">Welcome back, {user.username}!</p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex gap-3 flex-wrap">
+            <button
+              onClick={() => router.push('/messages')}
+              className="px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-lg font-semibold hover:scale-105 transition-transform"
+            >
+              💬 Messages
+            </button>
+            <button
+              onClick={() => router.push('/history')}
+              className="px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 rounded-lg font-semibold hover:scale-105 transition-transform"
+            >
+              📜 History
+            </button>
             <button
               onClick={() => router.push('/discover')}
               className="px-6 py-3 bg-gradient-to-r from-green-500 to-teal-500 rounded-lg font-semibold hover:scale-105 transition-transform"
@@ -90,7 +102,7 @@ export default function HomePage() {
               onClick={() => router.push('/collaborate')}
               className="px-6 py-3 bg-gradient-to-r from-pink-500 to-rose-500 rounded-lg font-semibold hover:scale-105 transition-transform"
             >
-              🤝 Collaborate
+              🤝 Requests
             </button>
             <button
               onClick={() => setShowCreateModal(true)}
