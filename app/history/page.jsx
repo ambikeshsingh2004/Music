@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import apiClient from '@/lib/api';
 import { toast } from 'react-toastify';
 import UserControls from '@/components/UserControls';
 
-export default function HistoryPage() {
+function HistoryContent() {
   const [project, setProject] = useState(null);
   const [versions, setVersions] = useState([]);
   const [proposals, setProposals] = useState([]);
@@ -506,5 +506,13 @@ export default function HistoryPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function HistoryPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-black flex items-center justify-center text-white">Loading history...</div>}>
+      <HistoryContent />
+    </Suspense>
   );
 }
