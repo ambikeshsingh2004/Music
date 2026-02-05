@@ -11,7 +11,8 @@ export default function useSocket(projectId, user) {
   useEffect(() => {
     if (!projectId || !user) return;
 
-    const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:5000';
+    const socketHost = process.env.NEXT_PUBLIC_SOCKET_HOST;
+    const SOCKET_URL = socketHost ? `https://${socketHost}` : (process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:5000');
 
     // Create socket connection
     socketRef.current = io(SOCKET_URL);

@@ -63,7 +63,8 @@ export default function MessagesPage() {
   };
 
   const initSocket = () => {
-    const socketUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+    const apiHost = process.env.NEXT_PUBLIC_API_HOST;
+    const socketUrl = apiHost ? `https://${apiHost}` : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000');
     const newSocket = io(socketUrl);
 
     newSocket.on('connect', () => {
