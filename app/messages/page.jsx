@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { io } from 'socket.io-client';
 import apiClient from '@/lib/api';
+import UserControls from '@/components/UserControls';
 
 export default function MessagesPage() {
   const [conversations, setConversations] = useState([]);
@@ -106,6 +107,13 @@ export default function MessagesPage() {
     try {
       const data = await apiClient.getMessages(conversationId);
       setMessages(data.messages);
+      
+      // Update unread count locally to 0 since we've now read the messages
+      setConversations(prev => prev.map(conv => 
+        conv.id === conversationId 
+          ? { ...conv, unread_count: 0 }
+          : conv
+      ));
     } catch (error) {
       console.error('Failed to load messages:', error);
     } finally {
@@ -229,12 +237,15 @@ export default function MessagesPage() {
               <h1 className="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
                 Messages
               </h1>
-              <button
-                onClick={() => router.push('/')}
-                className="text-sm px-3 py-1 bg-white/10 hover:bg-white/20 rounded-lg transition"
-              >
-                ← Back
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => router.push('/')}
+                  className="text-sm px-3 py-1 bg-white/10 hover:bg-white/20 rounded-lg transition"
+                >
+                  ← Back
+                </button>
+                <UserControls />
+              </div>
             </div>
             <button
               onClick={() => {

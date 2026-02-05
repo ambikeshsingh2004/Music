@@ -119,15 +119,23 @@ export default function Workspace({ projectId }) {
 
         {/* Center - Timeline (Full Width) */}
         <div className="flex-1 flex flex-col overflow-hidden">
-          <TimelineView tracks={tracks} />
+          <TimelineView tracks={tracks} timeline={timeline} />
         </div>
       </div>
 
       {/* Footer - Keyboard Guide */}
       <div className="bg-black/50 backdrop-blur-lg border-t border-white/10 p-3">
         <div className="text-xs text-gray-400 text-center">
-          <span className="font-semibold text-white">{selectedInstrument.toUpperCase()}</span> selected | 
-          Use keyboard to play | 
+          {selectedInstrument ? (
+            <>
+              <span className="font-semibold text-white">{selectedInstrument.toUpperCase()}</span> selected | 
+              Use keyboard to play | 
+            </>
+          ) : (
+            <>
+              <span className="font-semibold text-cyan-400">Select an instrument</span> to start | 
+            </>
+          )}
           Press SPACE to play/pause | 
           Press R to record
         </div>

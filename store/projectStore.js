@@ -16,7 +16,7 @@ const useProjectStore = create((set, get) => ({
   timeSignature: '4/4',
 
   // Selected instrument
-  selectedInstrument: 'piano',
+  selectedInstrument: null,
 
   // Version history
   versions: [],
@@ -55,6 +55,11 @@ const useProjectStore = create((set, get) => ({
       timeSignature: projectData.currentVersion?.metadata?.timeSignature || '4/4'
     });
   },
+
+  // Update project name
+  updateProjectName: (name) => set((state) => ({
+    currentProject: state.currentProject ? { ...state.currentProject, name } : null
+  })),
 
   // Clear project
   clearProject: () => set({

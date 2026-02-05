@@ -1,14 +1,14 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import apiClient from '@/lib/api';
+import UserControls from '@/components/UserControls';
 
 export default function HistoryPage() {
-  const [projects, setProjects] = useState([]);
-  const [expandedProjects, setExpandedProjects] = useState({});
-  const [projectVersions, setProjectVersions] = useState({});
-  const [projectProposals, setProjectProposals] = useState({});
+  const [project, setProject] = useState(null);
+  const [versions, setVersions] = useState([]);
+  const [proposals, setProposals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
   const [playingVersion, setPlayingVersion] = useState(null);
@@ -16,6 +16,8 @@ export default function HistoryPage() {
   const audioContextRef = useRef(null);
   const scheduledEventsRef = useRef([]);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const projectId = searchParams.get('projectId');
 
   useEffect(() => {
     checkAuth();
@@ -26,10 +28,10 @@ export default function HistoryPage() {
   }, []);
 
   useEffect(() => {
-    if (user) {
-      loadProjects();
+    if (user && projectId) {
+      loadProjectHistory();
     }
-  }, [user]);
+  }, [user, projectId]);
 
   const checkAuth = async () => {
     try {
@@ -40,44 +42,21 @@ export default function HistoryPage() {
     }
   };
 
-  const loadProjects = async () => {
+  const loadProjectHistory = async () => {
     try {
-      const data = await apiClient.getProjects();
-      setProjects(data.projects);
-      
-      if (data.projects.length > 0) {
-        toggleProject(data.projects[0].id);
-      }
-    } catch (error) {
-      console.error('Failed to load projects:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const toggleProject = async (projectId) => {
-    setExpandedProjects(prev => {
-      const newExpanded = { ...prev, [projectId]: !prev[projectId] };
-      
-      if (newExpanded[projectId] && !projectVersions[projectId]) {
-        loadProjectData(projectId);
-      }
-      
-      return newExpanded;
-    });
-  };
-
-  const loadProjectData = async (projectId) => {
-    try {
-      const [versionsData, proposalsData] = await Promise.all([
+      const [projectData, versionsData, proposalsData] = await Promise.all([
+        apiClient.getProject(projectId),
         apiClient.getVersions(projectId),
         apiClient.getProposals(projectId)
       ]);
       
-      setProjectVersions(prev => ({ ...prev, [projectId]: versionsData.versions }));
-      setProjectProposals(prev => ({ ...prev, [projectId]: proposalsData.proposals }));
+      setProject(projectData.project);
+      setVersions(versionsData.versions || []);
+      setProposals(proposalsData.proposals || []);
     } catch (error) {
-      console.error('Failed to load project data:', error);
+      console.error('Failed to load project history:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -224,48 +203,40 @@ export default function HistoryPage() {
     setPlayingVersion(null);
   };
 
-  const handleRevert = async (projectId, versionId, versionNumber) => {
-    if (!confirm(`Move HEAD to Version ${versionNumber}?\n\nThis doesn't delete any versions - it just changes which version is current.`)) return;
+  const handleRevert = async (versionId) => {
+    if (!confirm('Move HEAD to this version?\n\nThis doesn\'t delete any versions - it just changes which version is current.')) return;
 
     try {
       await apiClient.revertToVersion(projectId, versionId);
-      alert(`HEAD moved to Version ${versionNumber}!`);
-      loadProjectData(projectId);
-      loadProjects();
+      alert('HEAD moved!');
+      loadProjectHistory();
     } catch (error) {
       alert(error.message || 'Failed to move HEAD');
     }
   };
 
-  const handleAcceptProposal = async (projectId, proposalId) => {
+  const handleAcceptProposal = async (proposalId) => {
     if (!confirm('Accept this proposal? HEAD will move to this version.')) return;
 
     try {
       await apiClient.acceptProposal(proposalId);
       alert('Proposal accepted! HEAD moved.');
-      loadProjectData(projectId);
-      loadProjects();
+      loadProjectHistory();
     } catch (error) {
       alert(error.message || 'Failed to accept proposal');
     }
   };
 
-  const handleRejectProposal = async (projectId, proposalId) => {
+  const handleRejectProposal = async (proposalId) => {
     if (!confirm('Reject this proposal?')) return;
 
     try {
       await apiClient.rejectProposal(proposalId);
       alert('Proposal rejected');
-      loadProjectData(projectId);
+      loadProjectHistory();
     } catch (error) {
       alert(error.message || 'Failed to reject proposal');
     }
-  };
-
-  const isOwner = (project) => project?.owner_id === user?.id;
-  const getPendingCount = (projectId) => {
-    const proposals = projectProposals[projectId] || [];
-    return proposals.filter(p => p.status === 'pending').length;
   };
 
   const formatDate = (dateString) => {
@@ -319,282 +290,214 @@ export default function HistoryPage() {
     );
   }
 
+  if (!projectId || !project) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-black flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-6xl mb-4">📜</div>
+          <p className="text-xl text-white">Project not found or selected</p>
+          <button
+            onClick={() => router.push('/')}
+            className="mt-4 px-6 py-2 bg-gradient-to-r from-cyan-500 to-purple-500 rounded-lg hover:scale-105 transition-transform"
+          >
+            Back to Projects
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Access check: User must be the owner of the project
+  // This fulfills "only see history of songs created by me"
+  if (project.owner_id !== user.id) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-black flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-6xl mb-4">⛔</div>
+          <p className="text-xl text-white mb-2">Access Restricted</p>
+          <p className="text-gray-400">You can only view history for projects created by you.</p>
+          <button
+            onClick={() => router.push('/')}
+            className="mt-6 px-6 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition"
+          >
+            Back to Home
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const pendingProposals = proposals.filter(p => p.status === 'pending');
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-black text-white">
       {/* Header */}
-      <div className="bg-black/30 backdrop-blur-lg border-b border-white/10 sticky top-0 z-10">
+      <div className="bg-black/90 backdrop-blur-xl border-b border-white/10 sticky top-0 z-50 shadow-2xl">
         <div className="max-w-6xl mx-auto px-6 py-4">
           <div className="flex justify-between items-center">
             <div>
               <h1 className="text-3xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
-                📜 Version History
+                📜 {project.name}
               </h1>
-              <p className="text-gray-400 text-sm mt-1">Listen to and manage your music versions</p>
+              <p className="text-gray-400 text-sm mt-1">Version History</p>
             </div>
-            <button
-              onClick={() => router.push('/')}
-              className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition"
-            >
-              ← Back to Projects
-            </button>
+            <div className="flex items-center gap-3">
+              <button 
+                onClick={() => router.push(`/compose/${projectId}`)}
+                className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-purple-500 rounded-full font-semibold hover:scale-105 transition-transform flex items-center gap-2"
+              >
+                <span>🎵</span> Back to Composer
+              </button>
+              <UserControls />
+            </div>
           </div>
         </div>
       </div>
 
       {/* Main Content */}
       <div className="max-w-6xl mx-auto px-6 py-8">
-        {projects.length === 0 ? (
-          <div className="text-center py-20 text-gray-400">
-            <div className="text-6xl mb-4">📚</div>
-            <p className="text-xl">No projects yet</p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {projects.map(project => {
-              const isExpanded = expandedProjects[project.id];
-              const versions = projectVersions[project.id] || [];
-              const proposals = projectProposals[project.id] || [];
-              const pendingCount = getPendingCount(project.id);
-              const projectIsOwner = isOwner(project);
-
-              return (
-                <div key={project.id} className="bg-white/5 backdrop-blur-lg rounded-xl overflow-hidden">
-                  {/* Project Header */}
-                  <div
-                    onClick={() => toggleProject(project.id)}
-                    className="p-5 cursor-pointer hover:bg-white/5 transition flex items-center justify-between"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className={`w-8 h-8 flex items-center justify-center text-xl transition-transform duration-300 ${isExpanded ? 'rotate-90' : ''}`}>
-                        ▶
-                      </div>
-                      <div>
-                        <h3 className="text-xl font-bold flex items-center gap-3">
-                          {project.name}
-                          {projectIsOwner && (
-                            <span className="text-xs px-2 py-0.5 bg-cyan-500/20 text-cyan-300 rounded-full">Owner</span>
-                          )}
-                          {pendingCount > 0 && (
-                            <span className="text-xs px-2 py-0.5 bg-yellow-500/20 text-yellow-300 rounded-full animate-pulse">
-                              {pendingCount} pending
-                            </span>
-                          )}
-                        </h3>
-                        <p className="text-sm text-gray-400">{versions.length || '?'} versions saved</p>
-                      </div>
-                    </div>
+        {/* Pending Proposals */}
+        {pendingProposals.length > 0 && (
+          <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-6 mb-8 animate-fade-in">
+            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+              <span className="w-3 h-3 bg-yellow-500 rounded-full animate-pulse"></span>
+              {pendingProposals.length} Pending Proposal{pendingProposals.length > 1 ? 's' : ''}
+            </h2>
+            <div className="space-y-3">
+              {pendingProposals.map(proposal => (
+                <div key={proposal.id} className="bg-white/5 rounded-lg p-4 flex justify-between items-center">
+                  <div>
+                    <h3 className="font-semibold text-lg">{proposal.title}</h3>
+                    <p className="text-sm text-gray-400">{proposal.description || 'No description'}</p>
+                    <p className="text-xs text-gray-500 mt-2">
+                      Proposed by <span className="text-cyan-400">{proposal.proposer_username}</span> • {new Date(proposal.created_at).toLocaleString()}
+                    </p>
+                  </div>
+                  <div className="flex gap-3">
                     <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        router.push(`/compose/${project.id}`);
-                      }}
-                      className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-purple-500 rounded-lg font-semibold hover:scale-105 transition-transform text-sm"
+                      onClick={() => handleAcceptProposal(proposal.id)}
+                      className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-sm font-semibold transition flex items-center gap-1"
                     >
-                      Open Composer
+                      <span>✓</span> Accept
+                    </button>
+                    <button
+                      onClick={() => handleRejectProposal(proposal.id)}
+                      className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg text-sm font-semibold transition flex items-center gap-1"
+                    >
+                      <span>✗</span> Reject
                     </button>
                   </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
-                  {/* Expanded Content */}
-                  {isExpanded && (
-                    <div className="border-t border-white/10 p-6">
-                      {/* Pending Proposals */}
-                      {pendingCount > 0 && (
-                        <div className="mb-8">
-                          <h4 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                            <span className="w-3 h-3 bg-yellow-500 rounded-full animate-pulse"></span>
-                            Pending Proposals
-                          </h4>
-                          <div className="space-y-3">
-                            {proposals.filter(p => p.status === 'pending').map(proposal => (
-                              <div key={proposal.id} className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">
-                                <div className="flex justify-between items-start">
-                                  <div className="flex items-center gap-3">
-                                    <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${getUserColor(proposal.proposed_by_username)} flex items-center justify-center text-sm font-bold`}>
-                                      {getInitials(proposal.proposed_by_username)}
-                                    </div>
-                                    <div>
-                                      <h5 className="font-semibold">{proposal.title}</h5>
-                                      <p className="text-sm text-gray-400">
-                                        by {proposal.proposed_by_username} • {formatDate(proposal.created_at)}
-                                      </p>
-                                    </div>
-                                  </div>
-                                  {projectIsOwner && (
-                                    <div className="flex gap-2">
-                                      <button
-                                        onClick={() => handleAcceptProposal(project.id, proposal.id)}
-                                        className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-sm font-semibold transition"
-                                      >
-                                        ✓ Accept
-                                      </button>
-                                      <button
-                                        onClick={() => handleRejectProposal(project.id, proposal.id)}
-                                        className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg text-sm font-semibold transition"
-                                      >
-                                        ✗ Reject
-                                      </button>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            ))}
+        {/* Versions Timeline */}
+        {versions.length === 0 ? (
+          <div className="text-center py-20 text-gray-400 bg-white/5 rounded-2xl backdrop-blur-sm border border-white/5">
+            <div className="text-6xl mb-4">📝</div>
+            <p className="text-xl font-semibold text-white">No versions saved yet</p>
+            <p className="text-sm mt-2 max-w-md mx-auto">
+              Go to the composer and click "Save Version" to create a checkpoint of your work.
+            </p>
+            <button
+              onClick={() => router.push(`/compose/${projectId}`)}
+              className="mt-6 px-6 py-2 bg-white/10 hover:bg-white/20 rounded-full transition"
+            >
+              Start Composing
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-6 relative before:absolute before:left-8 before:top-8 before:bottom-8 before:w-0.5 before:bg-gradient-to-b before:from-cyan-500 before:to-purple-500 before:opacity-30">
+            {versions.map((version, index) => {
+              const isPlaying = playingVersion === version.id;
+              const trackCount = getTrackCount(version);
+              const eventCount = getEventCount(version);
+              
+              return (
+                <div 
+                  key={version.id} 
+                  className={`relative pl-20 transition-all duration-300 ${
+                    isPlaying ? 'scale-[1.02]' : 'hover:pl-24'
+                  }`}
+                >
+                  {/* Timeline Dot */}
+                  <div className={`absolute left-[29px] top-6 w-4 h-4 rounded-full border-2 transform -translate-x-1/2 transition-colors ${
+                    index === 0 ? 'bg-cyan-500 border-cyan-300 shadow-[0_0_10px_rgba(34,211,238,0.5)]' : 'bg-black border-gray-500'
+                  }`}></div>
+                  
+                  {/* Version Card */}
+                  <div className={`bg-white/5 backdrop-blur-md rounded-xl p-5 border transition-all ${
+                    isPlaying 
+                      ? 'border-green-500/50 bg-green-900/10 shadow-[0_0_20px_rgba(34,197,94,0.1)]' 
+                      : index === 0 
+                        ? 'border-cyan-500/30 bg-cyan-900/10' 
+                        : 'border-white/10 hover:bg-white/10 hover:border-white/20'
+                  }`}>
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <span className={`text-sm font-mono px-2 py-0.5 rounded ${
+                            index === 0 ? 'bg-cyan-500 text-black font-bold' : 'bg-white/10 text-gray-400'
+                          }`}>
+                            v{versions.length - index}
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            {new Date(version.created_at).toLocaleString()}
+                          </span>
+                          {index === 0 && (
+                            <span className="text-xs text-cyan-400 font-semibold tracking-wider">LATEST</span>
+                          )}
+                        </div>
+                        
+                        <h3 className="text-lg font-bold text-white mb-1">
+                          {version.message || <span className="text-gray-500 italic">No description</span>}
+                        </h3>
+                        
+                        <div className="flex items-center gap-4 text-xs text-gray-400 mt-2">
+                          <div className="flex items-center gap-1">
+                            <span>👤</span> {version.creator_username}
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <span>🎹</span> {trackCount} tracks
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <span>🎵</span> {eventCount} notes
                           </div>
                         </div>
-                      )}
+                      </div>
 
-                      {/* Version Graph */}
-                      <h4 className="text-lg font-semibold mb-4">Version Graph</h4>
-                      
-                      {versions.length === 0 ? (
-                        <p className="text-gray-400">No versions yet. Save your first version in the composer.</p>
-                      ) : (
-                        <div className="relative">
-                          {/* Graph Container */}
-                          <div className="flex flex-col gap-0">
-                            {versions.map((version, index) => {
-                              const isCurrentVersion = project.current_version_id === version.id;
-                              const isLast = index === versions.length - 1;
-                              const isPlaying = playingVersion === version.id;
-                              const isLoadingThis = loadingPreview === version.id;
-                              const trackCount = getTrackCount(version);
-                              const eventCount = getEventCount(version);
-                              
-                              return (
-                                <div key={version.id} className="flex items-stretch">
-                                  {/* Graph Line & Node */}
-                                  <div className="flex flex-col items-center w-16 flex-shrink-0">
-                                    {index > 0 && (
-                                      <div className="w-1 h-4 bg-gradient-to-b from-cyan-500 to-purple-500"></div>
-                                    )}
-                                    {index === 0 && <div className="h-4"></div>}
-                                    
-                                    {/* Node */}
-                                    <div className="relative">
-                                      <div className={`w-6 h-6 rounded-full border-4 transition-all ${
-                                        isCurrentVersion 
-                                          ? 'bg-cyan-400 border-cyan-300 shadow-lg shadow-cyan-500/50 scale-125' 
-                                          : 'bg-gray-700 border-gray-500 hover:border-gray-400'
-                                      }`}>
-                                      </div>
-                                      {isCurrentVersion && (
-                                        <div className="absolute -right-14 top-1/2 -translate-y-1/2 px-2 py-0.5 bg-cyan-500 text-black text-xs font-bold rounded whitespace-nowrap">
-                                          HEAD
-                                        </div>
-                                      )}
-                                    </div>
-                                    
-                                    {!isLast && (
-                                      <div className="w-1 flex-1 min-h-4 bg-gradient-to-b from-purple-500 to-cyan-500"></div>
-                                    )}
-                                    {isLast && <div className="flex-1"></div>}
-                                  </div>
+                      <div className="flex flex-col gap-2">
+                        <button
+                          onClick={() => handlePlayVersion(version)}
+                          disabled={loadingPreview && loadingPreview !== version.id}
+                          className={`px-4 py-2 rounded-lg font-bold text-sm transition flex items-center justify-center gap-2 w-32 ${
+                            isPlaying
+                              ? 'bg-red-500 hover:bg-red-600 text-white shadow-lg shadow-red-500/20'
+                              : 'bg-white/10 hover:bg-white/20 text-white'
+                          }`}
+                        >
+                          {loadingPreview === version.id ? (
+                            <span className="animate-spin">⌛</span>
+                          ) : isPlaying ? (
+                            <>⏹ Stop</>
+                          ) : (
+                            <>▶ Preview</>
+                          )}
+                        </button>
 
-                                  {/* Version Card */}
-                                  <div className={`flex-1 mb-4 ml-4 p-4 rounded-xl transition-all ${
-                                    isCurrentVersion 
-                                      ? 'bg-cyan-500/20 border-2 border-cyan-500/50 shadow-lg shadow-cyan-500/20' 
-                                      : isPlaying
-                                        ? 'bg-green-500/20 border-2 border-green-500/50'
-                                        : 'bg-white/5 hover:bg-white/10 border border-white/10'
-                                  }`}>
-                                    <div className="flex items-center justify-between">
-                                      {/* Left: Version Info */}
-                                      <div className="flex items-center gap-4">
-                                        {/* User Avatar */}
-                                        <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${getUserColor(version.created_by_username)} flex items-center justify-center text-lg font-bold shadow-lg`}>
-                                          {getInitials(version.created_by_username)}
-                                        </div>
-                                        
-                                        {/* Info */}
-                                        <div>
-                                          <div className="flex items-center gap-2">
-                                            <span className="text-2xl font-bold">v{version.version_number}</span>
-                                            {isCurrentVersion && (
-                                              <span className="text-xs px-2 py-0.5 bg-cyan-500 text-black rounded-full font-bold">
-                                                CURRENT
-                                              </span>
-                                            )}
-                                            {isPlaying && (
-                                              <span className="text-xs px-2 py-0.5 bg-green-500 text-black rounded-full font-bold animate-pulse">
-                                                ▶ PLAYING
-                                              </span>
-                                            )}
-                                          </div>
-                                          <p className="text-sm text-gray-300">{version.message}</p>
-                                          <div className="flex items-center gap-3 mt-1">
-                                            <p className="text-xs text-gray-500">
-                                              <span className="text-purple-400 font-medium">{version.created_by_username}</span>
-                                              <span className="mx-2">•</span>
-                                              {formatDate(version.created_at)}
-                                            </p>
-                                            {trackCount > 0 && (
-                                              <span className="text-xs text-gray-500">
-                                                🎵 {trackCount} tracks • {eventCount} events
-                                              </span>
-                                            )}
-                                          </div>
-                                        </div>
-                                      </div>
-
-                                      {/* Right: Actions */}
-                                      <div className="flex items-center gap-2">
-                                        {/* Play/Stop Button */}
-                                        <button
-                                          onClick={() => handlePlayVersion(version)}
-                                          disabled={isLoadingThis}
-                                          className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all hover:scale-105 flex items-center gap-2 ${
-                                            isPlaying
-                                              ? 'bg-red-600 hover:bg-red-700'
-                                              : isLoadingThis
-                                                ? 'bg-gray-600 cursor-wait'
-                                                : 'bg-green-600 hover:bg-green-700'
-                                          }`}
-                                        >
-                                          {isLoadingThis ? (
-                                            <>⏳ Loading...</>
-                                          ) : isPlaying ? (
-                                            <>⏹ Stop</>
-                                          ) : (
-                                            <>▶ Play</>
-                                          )}
-                                        </button>
-                                        
-                                        {!isCurrentVersion && (
-                                          <button
-                                            onClick={() => handleRevert(project.id, version.id, version.version_number)}
-                                            className="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-sm font-semibold transition-all hover:scale-105 flex items-center gap-2"
-                                          >
-                                            <span>↩</span>
-                                            Move HEAD
-                                          </button>
-                                        )}
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-
-                          {/* Legend */}
-                          <div className="mt-6 pt-4 border-t border-white/10 flex items-center gap-6 text-xs text-gray-400">
-                            <div className="flex items-center gap-2">
-                              <div className="w-4 h-4 rounded-full bg-cyan-400 border-2 border-cyan-300"></div>
-                              <span>HEAD (current)</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-green-400">▶</span>
-                              <span>Click Play to preview</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-purple-400">↩</span>
-                              <span>Move HEAD (no data deleted)</span>
-                            </div>
-                          </div>
-                        </div>
-                      )}
+                        {index !== 0 && (
+                          <button
+                            onClick={() => handleRevert(version.id)}
+                            className="px-4 py-2 bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 border border-purple-500/30 rounded-lg text-sm font-semibold transition w-32"
+                          >
+                            ⟲ Revert
+                          </button>
+                        )}
+                      </div>
                     </div>
-                  )}
+                  </div>
                 </div>
               );
             })}

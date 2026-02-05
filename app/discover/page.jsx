@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import apiClient from '@/lib/api';
+import UserControls from '@/components/UserControls';
 
 export default function DiscoverPage() {
   const [publicProjects, setPublicProjects] = useState([]);
@@ -207,7 +208,7 @@ export default function DiscoverPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-black text-white">
       {/* Header */}
-      <div className="bg-black/30 backdrop-blur-lg border-b border-white/10 sticky top-0 z-10">
+      <div className="bg-black/30 backdrop-blur-lg border-b border-white/10 sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-6 py-4">
           <div className="flex justify-between items-center">
             <div>
@@ -216,12 +217,15 @@ export default function DiscoverPage() {
               </h1>
               <p className="text-gray-400 text-sm mt-1">Explore, listen, and contribute to music projects</p>
             </div>
-            <button
-              onClick={() => router.push('/')}
-              className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition"
-            >
-              ← Back to Projects
-            </button>
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => router.push('/')}
+                className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition hidden md:block"
+              >
+                ← Back
+              </button>
+              <UserControls />
+            </div>
           </div>
         </div>
       </div>

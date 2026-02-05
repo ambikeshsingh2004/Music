@@ -1,199 +1,261 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
 import apiClient from '@/lib/api';
+import UserControls from '@/components/UserControls';
 
-export default function HomePage() {
-  const [projects, setProjects] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [newProjectName, setNewProjectName] = useState('');
-  const [newProjectDesc, setNewProjectDesc] = useState('');
-  const [user, setUser] = useState(null);
+export default function LandingPage() {
   const router = useRouter();
+  const [isVisible, setIsVisible] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    setIsVisible(true);
     checkAuth();
   }, []);
 
   const checkAuth = async () => {
     try {
-      const data = await apiClient.getCurrentUser();
-      setUser(data.user);
-      loadProjects();
+      const { user } = await apiClient.getCurrentUser();
+      setUser(user);
     } catch (error) {
-      // Not authenticated, redirect to auth page
-      router.push('/auth');
-    }
-  };
-
-  useEffect(() => {
-    if (user) {
-      loadProjects();
-    }
-  }, [user]);
-
-  const loadProjects = async () => {
-    try {
-      const data = await apiClient.getProjects();
-      setProjects(data.projects);
-    } catch (error) {
-      console.error('Failed to load projects:', error);
+      console.log('Not logged in');
+      setUser(null);
     } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const createProject = async (e) => {
-    e.preventDefault();
-    try {
-      const data = await apiClient.createProject(newProjectName, newProjectDesc);
-      router.push(`/compose/${data.project.id}`);
-    } catch (error) {
-      console.error('Failed to create project:', error);
-      alert('Failed to create project');
+      setLoading(false);
     }
   };
 
   const handleLogout = () => {
     apiClient.clearToken();
-    router.push('/auth');
+    setUser(null);
+    router.refresh();
   };
 
-  if (isLoading || !user) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-black flex items-center justify-center">
-        <div className="text-white text-2xl">Loading...</div>
-      </div>
-    );
-  }
+  const handleStartCreating = async () => {
+    if (!user) {
+      router.push('/auth');
+      return;
+    }
+
+    setIsCreating(true);
+    try {
+      // Create a new project
+      const projectName = `Untitled Project ${new Date().toLocaleTimeString()}`;
+      const response = await apiClient.createProject(projectName);
+      
+      if (response.project?.id) {
+        router.push(`/compose/${response.project.id}`);
+      }
+    } catch (error) {
+      console.error('Failed to create project:', error);
+      alert('Failed to create project. Please try again.');
+      setIsCreating(false);
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-black text-white p-8">
-      <div className="max-w-6xl mx-auto">
-        <div className="flex justify-between items-center mb-12">
-          <div>
-            <h1 className="text-5xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
-              🎵 Musically
-            </h1>
-            <p className="text-gray-400 mt-2">Welcome back, {user.username}!</p>
-          </div>
-          <div className="flex gap-3 flex-wrap">
+    <div className="min-h-screen relative overflow-hidden">
+      {/* Animated Background Elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-20 left-10 w-72 h-72 bg-cyan-500/10 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-20 right-10 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+        <div className="absolute top-1/2 left-1/2 w-80 h-80 bg-pink-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
+      </div>
+
+      {/* Navigation */}
+      <nav className="relative z-10 px-6 py-6">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <div className="text-2xl font-bold gradient-text">🎵 Musically</div>
+          
+          <div className="flex items-center gap-4">
+            {!loading && (
+              <>
+                {user ? (
+                  <UserControls />
+                ) : (
+                  <>
+                    <button
+                      onClick={() => router.push('/auth')}
+                      className="px-4 py-2 rounded-lg text-sm font-semibold hover:bg-white/5 transition"
+                    >
+                      Login
+                    </button>
+                    <button
+                      onClick={() => router.push('/auth')}
+                      className="px-6 py-2 rounded-lg text-sm font-semibold bg-white/10 hover:bg-white/20 transition border border-white/10"
+                    >
+                      Sign Up
+                    </button>
+                  </>
+                )}
+              </>
+            )}
+            
             <button
-              onClick={() => router.push('/messages')}
-              className="px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-lg font-semibold hover:scale-105 transition-transform"
+              onClick={handleStartCreating}
+              disabled={isCreating}
+              className="hidden md:block bg-gradient-to-r from-cyan-500 to-purple-500 px-6 py-2 rounded-lg font-medium hover:scale-105 transition-transform disabled:opacity-50 disabled:scale-100"
             >
-              💬 Messages
+              {isCreating ? 'Creating...' : user ? 'New Project →' : 'Get Started →'}
             </button>
+          </div>
+       </div>
+      </nav>
+
+      {/* Hero Section */}
+      <section className={`relative z-10 max-w-7xl mx-auto px-6 pt-20 pb-32 transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
+        <div className="text-center space-y-8">
+          {/* Badge */}
+          <div className="inline-flex items-center gap-2 glass px-4 py-2 rounded-full text-sm">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
+            </span>
+            <span className="text-gray-300">Real-time music collaboration</span>
+          </div>
+
+          {/* Headline */}
+          <h1 className="text-6xl md:text-7xl font-bold leading-tight">
+            Create Music
+            <br />
+            <span className="gradient-text">Together, Anywhere</span>
+          </h1>
+
+          {/* Subheadline */}
+          <p className="text-xl text-gray-400 max-w-2xl mx-auto">
+            A revolutionary platform for musicians to compose, collaborate, and share music in real-time with Git-like version control.
+          </p>
+
+          {/* CTA Buttons */}
+          <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
             <button
-              onClick={() => router.push('/history')}
-              className="px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 rounded-lg font-semibold hover:scale-105 transition-transform"
+              onClick={handleStartCreating}
+              disabled={isCreating}
+              className="px-8 py-4 rounded-xl font-semibold text-lg btn-hover disabled:opacity-50"
+              style={{ background: 'var(--gradient-cyan)' }}
             >
-              📜 History
+              {isCreating ? 'Creating...' : 'Start Creating Now'}
             </button>
             <button
               onClick={() => router.push('/discover')}
-              className="px-6 py-3 bg-gradient-to-r from-green-500 to-teal-500 rounded-lg font-semibold hover:scale-105 transition-transform"
+              className="glass px-8 py-4 rounded-xl font-semibold text-lg btn-hover"
             >
-              🔍 Discover
-            </button>
-            <button
-              onClick={() => router.push('/collaborate')}
-              className="px-6 py-3 bg-gradient-to-r from-pink-500 to-rose-500 rounded-lg font-semibold hover:scale-105 transition-transform"
-            >
-              🤝 Requests
-            </button>
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="px-6 py-3 bg-gradient-to-r from-cyan-500 to-purple-500 rounded-lg font-semibold hover:scale-105 transition-transform"
-            >
-              + New Project
-            </button>
-            <button
-              onClick={handleLogout}
-              className="px-6 py-3 bg-red-600 hover:bg-red-700 rounded-lg font-semibold transition"
-            >
-              Logout
+              Explore Projects
             </button>
           </div>
-        </div>
 
-        {projects.length === 0 ? (
-          <div className="text-center py-20">
-            <p className="text-gray-400 text-xl mb-6">No projects yet. Create your first music project!</p>
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="px-8 py-4 bg-gradient-to-r from-cyan-500 to-purple-500 rounded-lg font-semibold text-lg hover:scale-105 transition-transform"
-            >
-              Create Project
-            </button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {projects.map((project) => (
-              <div
-                key={project.id}
-                onClick={() => router.push(`/compose/${project.id}`)}
-                className="bg-white/10 backdrop-blur-lg rounded-xl p-6 cursor-pointer hover:bg-white/20 transition-all hover:scale-105"
-              >
-                <h3 className="text-2xl font-bold mb-2">{project.name}</h3>
-                <p className="text-gray-300 mb-4">{project.description || 'No description'}</p>
-                <p className="text-sm text-gray-400">
-                  Updated: {new Date(project.updated_at).toLocaleDateString()}
-                </p>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Create Project Modal */}
-        {showCreateModal && (
-          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
-            <div className="bg-gray-900 rounded-xl p-8 max-w-md w-full mx-4">
-              <h2 className="text-3xl font-bold mb-6">Create New Project</h2>
-              <form onSubmit={createProject}>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium mb-2">Project Name</label>
-                  <input
-                    type="text"
-                    value={newProjectName}
-                    onChange={(e) => setNewProjectName(e.target.value)}
-                    className="w-full px-4 py-2 bg-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                    placeholder="My Awesome Track"
-                    required
-                  />
-                </div>
-                <div className="mb-6">
-                  <label className="block text-sm font-medium mb-2">Description (optional)</label>
-                  <textarea
-                    value={newProjectDesc}
-                    onChange={(e) => setNewProjectDesc(e.target.value)}
-                    className="w-full px-4 py-2 bg-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                    placeholder="A collaborative masterpiece..."
-                    rows={3}
-                  />
-                </div>
-                <div className="flex gap-4">
-                  <button
-                    type="button"
-                    onClick={() => setShowCreateModal(false)}
-                    className="flex-1 px-4 py-2 bg-gray-700 rounded-lg hover:bg-gray-600"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="flex-1 px-4 py-2 bg-gradient-to-r from-cyan-500 to-purple-500 rounded-lg font-semibold hover:scale-105 transition-transform"
-                  >
-                    Create
-                  </button>
-                </div>
-              </form>
+          {/* Stats */}
+          <div className="flex flex-wrap items-center justify-center gap-12 pt-12 text-sm">
+            <div>
+              <div className="text-3xl font-bold gradient-text-cyan">5</div>
+              <div className="text-gray-400">Instruments</div>
+            </div>
+            <div>
+              <div className="text-3xl font-bold gradient-text-cyan">∞</div>
+              <div className="text-gray-400">Collaborators</div>
+            </div>
+            <div>
+              <div className="text-3xl font-bold gradient-text-cyan">100%</div>
+              <div className="text-gray-400">Real-time</div>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      </section>
+
+      {/* Features Section */}
+      <section className={`relative z-10 max-w-7xl mx-auto px-6 py-20 transition-all duration-1000 delay-300 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
+        <div className="text-center mb-16">
+          <h2 className="text-4xl font-bold mb-4">Powerful Features</h2>
+          <p className="text-gray-400 text-lg">Everything you need to create amazing music together</p>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-6">
+          {/* Feature 1 */}
+          <div className="glass-strong rounded-2xl p-8 card-hover">
+            <div className="text-5xl mb-4">🎹</div>
+            <h3 className="text-2xl font-bold mb-3">Multi-Track Recording</h3>
+            <p className="text-gray-400">
+              Record multiple instruments simultaneously with our intuitive timeline interface and visual event blocks.
+            </p>
+          </div>
+
+          {/* Feature 2 */}
+          <div className="glass-strong rounded-2xl p-8 card-hover">
+            <div className="text-5xl mb-4">🌿</div>
+            <h3 className="text-2xl font-bold mb-3">Version Control</h3>
+            <p className="text-gray-400">
+              Git-like branching and merging for music. Never lose a version, experiment freely, and collaborate safely.
+            </p>
+          </div>
+
+          {/* Feature 3 */}
+          <div className="glass-strong rounded-2xl p-8 card-hover">
+            <div className="text-5xl mb-4">💬</div>
+            <h3 className="text-2xl font-bold mb-3">Real-Time Collaboration</h3>
+            <p className="text-gray-400">
+              Chat with collaborators, share ideas, and create music together with WebSocket-powered real-time sync.
+            </p>
+          </div>
+
+          {/* Feature 4 */}
+          <div className="glass-strong rounded-2xl p-8 card-hover">
+            <div className="text-5xl mb-4">🎛️</div>
+            <h3 className="text-2xl font-bold mb-3">Professional Instruments</h3>
+            <p className="text-gray-400">
+              Drums, piano, guitar, synthesizers, and pads powered by Tone.js for studio-quality sound.
+            </p>
+          </div>
+
+          {/* Feature 5 */}
+          <div className="glass-strong rounded-2xl p-8 card-hover">
+            <div className="text-5xl mb-4">⚡</div>
+            <h3 className="text-2xl font-bold mb-3">Lightning Fast</h3>
+            <p className="text-gray-400">
+              Built with Next.js and optimized for performance. Create and play back music with zero latency.
+            </p>
+          </div>
+
+          {/* Feature 6 */}
+          <div className="glass-strong rounded-2xl p-8 card-hover">
+            <div className="text-5xl mb-4">🚀</div>
+            <h3 className="text-2xl font-bold mb-3">Easy to Use</h3>
+            <p className="text-gray-400">
+              Intuitive interface with keyboard shortcuts. Start creating music in seconds, no learning curve.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className={`relative z-10 max-w-4xl mx-auto px-6 py-32 transition-all duration-1000 delay-500 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
+        <div className="glass-strong rounded-3xl p-12 text-center space-y-6">
+          <h2 className="text-4xl md:text-5xl font-bold">
+            Ready to Make Music?
+          </h2>
+          <p className="text-xl text-gray-400">
+            Join musicians worldwide creating amazing compositions together.
+          </p>
+          <button
+            onClick={handleStartCreating}
+            disabled={isCreating}
+            className="px-10 py-5 rounded-xl font-bold text-xl btn-hover glow disabled:opacity-50"
+            style={{ background: 'var(--gradient-rainbow)' }}
+          >
+            {isCreating ? 'Creating...' : 'Start Creating Now →'}
+          </button>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="relative z-10 border-t border-white/10 py-8 mt-20">
+        <div className="max-w-7xl mx-auto px-6 text-center text-gray-500">
+          <p>© 2024 Musically. Built with passion for musicians.</p>
+        </div>
+      </footer>
     </div>
   );
 }

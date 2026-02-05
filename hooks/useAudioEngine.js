@@ -46,6 +46,25 @@ export default function useAudioEngine() {
     }
   }, [selectedInstrument]);
 
+  // Listen to timeline events to sync state
+  useEffect(() => {
+    const { setIsPlaying } = useProjectStore.getState();
+
+    if (timelineRef.current) {
+      const handleTimelineEvent = (event) => {
+        if (event === 'stop') {
+          setIsPlaying(false);
+        }
+      };
+
+      timelineRef.current.addEventListener(handleTimelineEvent);
+
+      return () => {
+        timelineRef.current?.removeEventListener(handleTimelineEvent);
+      };
+    }
+  }, []);
+
   // Update scheduled tracks when tracks change
   useEffect(() => {
     if (eventSchedulerRef.current && tracks.length > 0) {
