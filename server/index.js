@@ -57,10 +57,43 @@ app.get("/api/health", (_req, res) => {
 });
 
 // Start server (Render injects PORT)
+// Start server (Render injects PORT)
 const PORT = process.env.PORT || 3001;
 
-server.listen(PORT, () => {
-  console.log(`🚀 API running on port ${PORT}`);
+// Initialize Database Schema
+const fs = require('fs');
+const path = require('path');
+const { pool } = require('./database');
+
+async function initDb() {
+  try {
+    const schemaPath = path.join(__dirname, '../database/schema.sql');
+    const messagesPath = path.join(__dirname, '../database/migration_messages.sql');
+    const requestsPath = path.join(__dirname, '../database/migration_collaboration_requests.sql');
+
+    const schemaSql = fs.readFileSync(schemaPath, 'utf8');
+    const messagesSql = fs.readFileSync(messagesPath, 'utf8');
+    const requestsSql = fs.readFileSync(requestsPath, 'utf8');
+
+    await pool.query(schemaSql);
+    console.log('✅ Base schema initialized');
+
+    await pool.query(messagesSql);
+    console.log('✅ Messages schema initialized');
+
+    await pool.query(requestsSql);
+    console.log('✅ Collaboration requests schema initialized');
+
+  } catch (err) {
+    console.error('❌ Failed to initialize database:', err);
+  }
+}
+
+// Start server after DB init
+initDb().then(() => {
+  server.listen(PORT, () => {
+    console.log(`🚀 API running on port ${PORT}`);
+  });
 });
 
 // Export for testing / reuse
