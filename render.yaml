@@ -12,12 +12,6 @@ services:
           name: musically-db
           property: connectionString
 
-      - key: REDIS_URL
-        fromService:
-          type: redis
-          name: musically-redis
-          property: connectionString
-
       - key: JWT_SECRET
         generateValue: true
 
