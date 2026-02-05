@@ -47,12 +47,6 @@ services:
           name: musically-api
           property: host
 
-  # 3. Redis
-  - type: redis
-    name: musically-redis
-    plan: free
-    ipAllowList: []
-
 databases:
   # 4. Postgres
   - name: musically-db

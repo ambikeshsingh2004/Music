@@ -1,7 +1,6 @@
 const express = require('express');
 const { query } = require('../database');
 const { authenticateToken } = require('../middleware/auth');
-const { getProjectCache, setProjectCache, invalidateProjectCache } = require('../redis');
 
 const router = express.Router();
 
@@ -51,27 +50,6 @@ router.get('/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Check cache first
-    const cached = await getProjectCache(id);
-    if (cached) {
-      // Add user-specific permission info
-      const isOwner = cached.project.owner_id === req.user.userId;
-      const collaboratorResult = await query(
-        'SELECT role FROM collaborators WHERE project_id = $1 AND user_id = $2',
-        [id, req.user.userId]
-      );
-      const isCollaborator = collaboratorResult.rows.length > 0;
-      const role = collaboratorResult.rows[0]?.role || null;
-
-      return res.json({
-        ...cached,
-        isOwner,
-        isCollaborator,
-        role,
-        canEdit: isOwner || role === 'editor'
-      });
-    }
-
     // Get project
     const projectResult = await query(
       `SELECT p.*, u.username as owner_username 
@@ -114,9 +92,6 @@ router.get('/:id', authenticateToken, async (req, res) => {
       role,
       canEdit: isOwner || role === 'editor'
     };
-
-    // Cache the result (without user-specific data)
-    await setProjectCache(id, { project, currentVersion });
 
     res.json(response);
   } catch (error) {
@@ -211,7 +186,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
     await query('DELETE FROM projects WHERE id = $1', [id]);
 
     // Invalidate cache
-    await invalidateProjectCache(id);
+    // await invalidateProjectCache(id);
 
     res.json({ message: 'Project deleted successfully' });
   } catch (error) {

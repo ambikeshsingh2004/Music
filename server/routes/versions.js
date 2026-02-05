@@ -1,7 +1,6 @@
 const express = require('express');
 const { query } = require('../database');
 const { authenticateToken } = require('../middleware/auth');
-const { invalidateProjectCache } = require('../redis');
 
 const router = express.Router();
 
@@ -132,7 +131,7 @@ router.post('/projects/:projectId/versions', authenticateToken, async (req, res)
       );
 
       // Invalidate cache
-      await invalidateProjectCache(projectId);
+      // await invalidateProjectCache(projectId);
 
       res.status(201).json({
         version,
@@ -204,7 +203,7 @@ router.post('/projects/:projectId/revert/:versionId', authenticateToken, async (
     );
 
     // Invalidate cache
-    await invalidateProjectCache(projectId);
+    // await invalidateProjectCache(projectId);
 
     res.json({ message: 'Reverted to version successfully', versionId });
   } catch (error) {

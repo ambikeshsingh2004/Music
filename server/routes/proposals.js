@@ -1,7 +1,6 @@
 const express = require('express');
 const { query } = require('../database');
 const { authenticateToken } = require('../middleware/auth');
-const { invalidateProjectCache } = require('../redis');
 
 const router = express.Router();
 
@@ -131,7 +130,7 @@ router.post('/:proposalId/accept', authenticateToken, async (req, res) => {
     );
 
     // Invalidate cache
-    await invalidateProjectCache(proposal.project_id);
+    // await invalidateProjectCache(proposal.project_id);
 
     res.json({ message: 'Proposal accepted successfully' });
   } catch (error) {
