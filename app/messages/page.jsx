@@ -106,7 +106,7 @@ export default function MessagesPage() {
     } catch (error) {
       console.error('Failed to load conversations:', error);
     } finally {
-      setLoading(false);
+      setLoading(fals);
     }
   };
 
