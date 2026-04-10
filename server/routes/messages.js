@@ -4,46 +4,7 @@ const { authenticateToken } = require('../middleware/auth');
 
 const router = express.Router();
 
-// Get all conversations for the current user
-router.get('/conversations', authenticateToken, async (req, res) => {
-  try {
-    const result = await query(
-      `SELECT 
-        c.*,
-        p.name as project_name,
-        (
-          SELECT json_agg(json_build_object('id', u.id, 'username', u.username))
-          FROM conversation_participants cp2
-          JOIN users u ON cp2.user_id = u.id
-          WHERE cp2.conversation_id = c.id AND cp2.user_id != $1
-        ) as other_participants,
-        (
-          SELECT json_build_object('content', m.content, 'sender_id', m.sender_id, 'created_at', m.created_at, 'sender_username', u.username)
-          FROM messages m
-          JOIN users u ON m.sender_id = u.id
-          WHERE m.conversation_id = c.id
-          ORDER BY m.created_at DESC
-          LIMIT 1
-        ) as last_message,
-        (
-          SELECT COUNT(*)
-          FROM messages m
-          WHERE m.conversation_id = c.id AND m.created_at > cp.last_read_at
-        )::integer as unread_count
-       FROM conversations c
-       JOIN conversation_participants cp ON c.id = cp.conversation_id
-       LEFT JOIN projects p ON c.project_id = p.id
-       WHERE cp.user_id = $1
-       ORDER BY c.updated_at DESC`,
-      [req.user.userId]
-    );
 
-    res.json({ conversations: result.rows });
-  } catch (error) {
-    console.error('Get conversations error:', error);
-    res.status(500).json({ error: 'Failed to get conversations' });
-  }
-});
 
 // Get or create direct conversation with a user
 router.post('/conversations/direct', authenticateToken, async (req, res) => {
